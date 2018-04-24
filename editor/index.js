@@ -54,9 +54,10 @@ class Pane extends Observable {
 
 class CodePane extends Pane {
 	
-	constructor(title, supplier, extension) {
+	constructor(title, supplier, extension, mode) {
 		super(title, supplier)
 		this.extension = extension
+		this.mode = mode
 	}
 	
 	installIn($container) {
@@ -74,7 +75,8 @@ class CodePane extends Pane {
 			this.save()
 		})
 		this.codeMirror = CodeMirror(this.$body[0], {
-			lineNumbers: true
+			lineNumbers: true,
+			mode: this.mode
 		})
 		this.codeMirror.on('change', () => {
 			if (this.changeScheduled) {
@@ -129,8 +131,8 @@ class CodePane extends Pane {
 
 class SourcePane extends CodePane {
 	
-	constructor(title, supplier, extension) {
-		super(title, supplier, extension)
+	constructor(title, supplier, extension, mode) {
+		super(title, supplier, extension, mode)
 	}
 	
 	change(code) {
@@ -141,8 +143,8 @@ class SourcePane extends CodePane {
 
 class GrammarPane extends CodePane {
 	
-	constructor(title, supplier, extension) {
-		super(title, supplier, extension)
+	constructor(title, supplier, extension, mode) {
+		super(title, supplier, extension, mode)
 	}
 	
 	updateInternal(message) {
@@ -161,8 +163,8 @@ class GrammarPane extends CodePane {
 
 class AstPane extends CodePane {
 	
-	constructor(title, supplier, extension) {
-		super(title, supplier, extension)
+	constructor(title, supplier, extension, mode) {
+		super(title, supplier, extension, mode)
 	}
 	
 	updateInternal(message) {
@@ -174,8 +176,8 @@ class AstPane extends CodePane {
 
 class CompilerPane extends CodePane {
 	
-	constructor(title, supplier, extension) {
-		super(title, supplier, extension)
+	constructor(title, supplier, extension, mode) {
+		super(title, supplier, extension, mode)
 	}
 	
 	updateInternal(message) {
@@ -194,8 +196,8 @@ class CompilerPane extends CodePane {
 
 class WatPane extends CodePane {
 	
-	constructor(title, supplier, extension) {
-		super(title, supplier, extension)
+	constructor(title, supplier, extension, mode) {
+		super(title, supplier, extension, mode)
 	}
 	
 	updateInternal(message) {
@@ -207,8 +209,8 @@ class WatPane extends CodePane {
 
 class OutputPane extends CodePane {
 	
-	constructor(title, supplier, extension) {
-		super(title, supplier, extension)
+	constructor(title, supplier, extension, mode) {
+		super(title, supplier, extension, mode)
 	}
 	
 	async updateInternal(wat) {
@@ -229,10 +231,10 @@ class OutputPane extends CodePane {
 
 let root = new Observable()
 let sourcePane = new SourcePane('Source', root, 'source')
-let grammarPane = new GrammarPane('Grammar', sourcePane, 'pegjs')
-let astPane = new AstPane('AST', grammarPane, 'json')
-let compilerPane = new CompilerPane('Compiler', astPane, 'js')
-let watPane = new WatPane('WAT', compilerPane, 'wat')
+let grammarPane = new GrammarPane('Grammar', sourcePane, 'pegjs', 'pegjs')
+let astPane = new AstPane('AST', grammarPane, 'json', 'json')
+let compilerPane = new CompilerPane('Compiler', astPane, 'js', 'javascript')
+let watPane = new WatPane('WAT', compilerPane, 'wat', 'wast')
 let outputPane = new OutputPane('Output', watPane, 'txt')
 
 const PANES = [
