@@ -35,6 +35,10 @@ html, body {
 	display: none;
 }
 
+.pane-minimized .pane-header *:not(:first-child) {
+	display: none;
+}
+
 .pane-updating .pane-body:after {
 	content: 'updating...';
 	display: flex;
@@ -55,6 +59,10 @@ html, body {
 	cursor: pointer;
 	background: lightgrey;
 	padding: 1em;
+}
+
+.pane-header *:not(:first-child) {
+	padding-left: 1em;
 }
 
 .pane-body {

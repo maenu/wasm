@@ -22,7 +22,8 @@ class Pane extends Observable {
 	
 	installIn($container) {
 		this.$container = $container.addClass(`pane pane-${this.title.toLowerCase()}`)
-		this.$header = $('<div>').addClass('pane-header').appendTo(this.$container).text(this.title)
+		this.$header = $('<div>').addClass('pane-header').appendTo(this.$container)
+		this.$title = $('<span>').appendTo(this.$header).text(this.title)
 		this.$body = $('<div>').addClass('pane-body').appendTo(this.$container)
 		this.$header.on('click', () => this.toggleMinimize())
 	}
@@ -31,11 +32,11 @@ class Pane extends Observable {
 		if (this.minimized) {
 			this.minimized = false
 			this.$container.removeClass('pane-minimized')
-			this.$header.text(this.title)
+			this.$title.text(this.title)
 		} else {
 			this.minimized = true
 			this.$container.addClass('pane-minimized')
-			this.$header.text(this.title.substring(0, 1))
+			this.$title.text(this.title.substring(0, 1))
 		}
 	}
 	
@@ -53,12 +54,25 @@ class Pane extends Observable {
 
 class CodePane extends Pane {
 	
-	constructor(title, supplier) {
+	constructor(title, supplier, extension) {
 		super(title, supplier)
+		this.extension = extension
 	}
 	
 	installIn($container) {
 		super.installIn($container)
+		this.$load = $('<a href="#">').text('load').appendTo(this.$header)
+		this.$load.on('click', (event) => {
+			event.preventDefault()
+			event.stopPropagation()
+			this.load()
+		})
+		this.$save = $('<a href="#">').text('save').appendTo(this.$header)
+		this.$save.on('click', () => {
+			event.preventDefault()
+			event.stopPropagation()
+			this.save()
+		})
 		this.codeMirror = CodeMirror(this.$body[0], {
 			lineNumbers: true
 		})
@@ -77,12 +91,46 @@ class CodePane extends Pane {
 		
 	}
 	
+	load() {
+		let input = document.createElement('input')
+		input.type = 'file'
+		input.addEventListener('change', () => {
+			if (!input.files[0]){
+				return
+			}
+			let reader = new FileReader()
+			reader.onloadend = (event) => {
+				if (event.target.readyState != FileReader.DONE) {
+					return
+				}
+				this.codeMirror.setValue(event.target.result)
+			}
+			reader.readAsText(input.files[0]);
+		})
+		input.style.display = 'none'
+		document.body.appendChild(input)
+		input.click()
+	}
+	
+	save() {
+		let blob = new Blob([this.codeMirror.getValue()], {
+			type:'text/plain'
+		})
+		let anchor = document.createElement('a')
+		anchor.download = `${this.title.toLowerCase()}.${this.extension}`
+		anchor.innerHTML = 'download'
+		anchor.href = window.URL.createObjectURL(blob)
+		anchor.style.display = 'none'
+		document.body.appendChild(anchor)
+		anchor.click()
+	}
+	
 }
 
 class SourcePane extends CodePane {
 	
-	constructor(title, supplier) {
-		super(title, supplier)
+	constructor(title, supplier, extension) {
+		super(title, supplier, extension)
 	}
 	
 	change(code) {
@@ -93,8 +141,8 @@ class SourcePane extends CodePane {
 
 class GrammarPane extends CodePane {
 	
-	constructor(title, supplier) {
-		super(title, supplier)
+	constructor(title, supplier, extension) {
+		super(title, supplier, extension)
 	}
 	
 	updateInternal(message) {
@@ -113,8 +161,8 @@ class GrammarPane extends CodePane {
 
 class AstPane extends CodePane {
 	
-	constructor(title, supplier) {
-		super(title, supplier)
+	constructor(title, supplier, extension) {
+		super(title, supplier, extension)
 	}
 	
 	updateInternal(message) {
@@ -126,8 +174,8 @@ class AstPane extends CodePane {
 
 class CompilerPane extends CodePane {
 	
-	constructor(title, supplier) {
-		super(title, supplier)
+	constructor(title, supplier, extension) {
+		super(title, supplier, extension)
 	}
 	
 	updateInternal(message) {
@@ -146,8 +194,8 @@ class CompilerPane extends CodePane {
 
 class WatPane extends CodePane {
 	
-	constructor(title, supplier) {
-		super(title, supplier)
+	constructor(title, supplier, extension) {
+		super(title, supplier, extension)
 	}
 	
 	updateInternal(message) {
@@ -159,8 +207,8 @@ class WatPane extends CodePane {
 
 class OutputPane extends CodePane {
 	
-	constructor(title, supplier) {
-		super(title, supplier)
+	constructor(title, supplier, extension) {
+		super(title, supplier, extension)
 	}
 	
 	async updateInternal(wat) {
@@ -171,12 +219,7 @@ class OutputPane extends CodePane {
 			log: true,
 			write_debug_names: true
 		})
-		console.log(binaryOutput.log)
-		let webAssembly = await WebAssembly.instantiate(binaryOutput.buffer, {
-			imports: {
-				imported_func: arg => console.log(arg)
-			}
-		})
+		let webAssembly = await WebAssembly.instantiate(binaryOutput.buffer)
 		let result = webAssembly.instance.exports.main()
 		this.codeMirror.setValue('' + result)
 		this.notify(result)
@@ -185,12 +228,12 @@ class OutputPane extends CodePane {
 }
 
 let root = new Observable()
-let sourcePane = new SourcePane('Source', root)
-let grammarPane = new GrammarPane('Grammar', sourcePane)
-let astPane = new AstPane('AST', grammarPane)
-let compilerPane = new CompilerPane('Compiler', astPane)
-let watPane = new WatPane('WAT', compilerPane)
-let outputPane = new OutputPane('Output', watPane)
+let sourcePane = new SourcePane('Source', root, 'source')
+let grammarPane = new GrammarPane('Grammar', sourcePane, 'pegjs')
+let astPane = new AstPane('AST', grammarPane, 'json')
+let compilerPane = new CompilerPane('Compiler', astPane, 'js')
+let watPane = new WatPane('WAT', compilerPane, 'wat')
+let outputPane = new OutputPane('Output', watPane, 'txt')
 
 const PANES = [
 	sourcePane,
